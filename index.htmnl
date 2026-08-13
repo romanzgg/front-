@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rede Social da Sala - Professor</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        /* Sistema de Abas */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            background-color: #3730a3;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .tab-btn.active {
+            background-color: var(--primary-color);
+            border-bottom: 4px solid #facc15;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Formulário de Cadastro */
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            box-sizing: border-box;
+        }
+
+        button.submit-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button.submit-btn:hover {
+            background-color: #4338ca;
+        }
+
+        /* Grid de Perfis */
+        .profiles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .profile-card {
+            background-color: var(--card-bg);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .profile-card img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 0.75rem;
+            border: 3px solid var(--primary-color);
+        }
+
+        .profile-card h3 {
+            margin: 0.5rem 0;
+            font-size: 1.2rem;
+        }
+
+        .like-section {
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .like-btn {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.3rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .like-btn:hover {
+            background-color: #dc2626;
+        }
+
+        .like-count {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📱 Rede Social da Turma</h1>
+    </header>
+
+    <!-- Navegação por Abas -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(event, 'cadastroTab')">Painel do Professor (Cadastro)</button>
+        <button class="tab-btn" onclick="switchTab(event, 'feedTab')">Feed da Sala (Curtidas)</button>
+    </div>
+
+    <!-- ABA 1: CADASTRO (Professor) -->
+    <div id="cadastroTab" class="tab-content active">
+        <h2>Cadastrar Aluno</h2>
+        <div class="form-group">
+            <label for=" alunoNome">Nome do Aluno:</label>
+            <input type="text" id="alunoNome" placeholder="Digite o nome completo">
+        </div>
+        <div class="form-group">
+            <label for="alunoFoto">Foto do Aluno:</label>
+            <input type="file" id="alunoFoto" accept="image/*">
+        </div>
+        <button class="submit-btn" onclick="salvarAluno()">Salvar Perfil</button>
+    </div>
+
+    <!-- ABA 2: FEED / CURTIDAS -->
+    <div id="feedTab" class="tab-content">
+        <h2>Perfis da Sala</h2>
+        <div id="profilesContainer" class="profiles-grid">
+            <!-- Os cards dos alunos vão aparecer aqui dinamicamente -->
+        </div>
+    </div>
+
+    <script>
+        // Função para alternar entre as abas
+        function switchTab(evt, tabId) {
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(tabId).classList.add('active');
+            evt.currentTarget.classList.add('active');
+
+            if(tabId === 'feedTab') {
+                carregarPerfis();
+            }
+        }
+
+        // Recuperar dados salvos do navegador ou iniciar lista vazia
+        let alunos = JSON.parse(localStorage.getItem('alunosSala')) || [];
+
+        // Função para salvar o aluno
+        function salvarAluno() {
+            const nomeInput = document.getElementById('alunoNome');
+            const fotoInput = document.getElementById('alunoFoto');
+
+            const nome = nomeInput.value.trim();
+            if (!nome) {
+                alert('Por favor, digite o nome do aluno.');
+                return;
+            }
+
+            if (fotoInput.files && fotoInput.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const novaImagem = e.target.result;
+                    
+                    // Criar objeto do aluno
+                    const alunoObj = {
+                        id: Date.now(),
+                        nome: nome,
+                        imagem: novaImagem,
+                        likes: 0
+                    };
+
+                    alunos.push(alunoObj);
+                    localStorage.setItem('alunosSala', JSON.stringify(alunos));
+
+                    // Limpar campos
+                    nomeInput.value = '';
+                    fotoInput.value = '';
+                    alert('Aluno cadastrado com sucesso!');
+                    
+                    // Ir direto para a aba de feed
+                    document.querySelectorAll('.tab-btn')[1].click();
+                };
+
+                reader.readAsDataURL(fotoInput.files[0]);
+            } else {
+                alert('Por favor, selecione uma imagem.');
+            }
+        }
+
+        // Função para carregar os perfis na aba de Feed
+        function carregarPerfis() {
+            const container = document.getElementById('profilesContainer');
+            container.innerHTML = '';
+
+            if (alunos.length === 0) {
+                container.innerHTML = '<p>Nenhum aluno cadastrado ainda.</p>';
+                return;
+            }
+
+            alunos.forEach((aluno, index) => {
+                const card = document.createElement('div');
+                card.className = 'profile-card';
+
+                card.innerHTML = `
+                    <img src="${aluno.imagem}" alt="Foto de ${aluno.nome}">
+                    <h3>${aluno.nome}</h3>
+                    <div class="like-section">
+                        <button class="like-btn" onclick="curtir(${index})">❤️ Curtir</button>
+                        <span class="like-count" id="like-count-${index}">${aluno.likes}</span>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Função para contabilizar as curtidas
+        function curtir(index) {
+            alunos[index].likes += 1;
+            localStorage.setItem('alunosSala', JSON.stringify(alunos));
+            
+            // Atualizar o contador na tela sem precisar recarregar tudo
+            document.getElementById(`like-count-${index}`).innerText = alunos[index].likes;
+        }
+    </script>
+</body>
+</html>
